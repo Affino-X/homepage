@@ -9,79 +9,68 @@ async function fetchPosts() {
         }
         const posts = await response.json();
 
-        // Кэш для авторов и категорий
-        const authorCache = new Map();
-        const categoryCache = new Map();
+        // All data
+        allPosts = await Promise.all(posts.map(async (post) => {
 
-        // Функция для получения данных автора
-        const fetchAuthor = async (authorId) => {
-            if (!authorCache.has(authorId)) {
-                const authorResponse = await fetch(`https://journal.zennolab.com/wp-json/wp/v2/users/${authorId}`);
-                const authorData = await authorResponse.json();
-                authorCache.set(authorId, authorData);
-            }
-            return authorCache.get(authorId);
-        };
+            // Get data author
+            const authorResponse = await fetch(`https://journal.zennolab.com/wp-json/wp/v2/users/${post.author}`);
+            const authorData = await authorResponse.json();
 
-        // Функция для получения данных категории
-        const fetchCategory = async (categoryId) => {
-            if (!categoryCache.has(categoryId)) {
-                const categoryResponse = await fetch(`https://journal.zennolab.com/wp-json/wp/v2/categories/${categoryId}`);
-                const categoryData = await categoryResponse.json();
-                categoryCache.set(categoryId, { name: categoryData.name, link: categoryData.link });
-            }
-            return categoryCache.get(categoryId);
-        };
-
-        // Функция для получения изображения
-        const fetchImage = async (mediaId) => {
-            const imageResponse = await fetch(`https://journal.zennolab.com/wp-json/wp/v2/media/${mediaId}`);
+            // Get image
+            const imageResponse = await fetch(`https://journal.zennolab.com/wp-json/wp/v2/media/${post.featured_media}`);
             const imageData = await imageResponse.json();
-            return imageData.source_url;
-        };
+            const imageURL = imageData.source_url; 
 
-        // Обработка всех постов
-       allPosts = await Promise.all(posts.map(async (post) => {
-            const [authorData, imageURL, categories] = await Promise.all([
-                fetchAuthor(post.author),
-                fetchImage(post.featured_media),
-                Promise.all(post.categories.map(fetchCategory))
-            ]);
-
+            // Get categories
+            const categories = await Promise.all(
+                post.categories.map(async (categoryId) => {
+                    const categoryResponse = await fetch(`https://journal.zennolab.com/wp-json/wp/v2/categories/${categoryId}`);
+                    const categoryData = await categoryResponse.json();
+                    return {name: categoryData.name, link: categoryData.link}; 
+                })
+            );
+            
             return {
-                id: post.id,
+                id: post.id,    
                 title: post.title.rendered,
                 image: imageURL,
+                excerpt: post.excerpt.rendered,
                 description: post.content.rendered,
                 date: post.date,
                 link: post.link,
-                categories,
+                categories: categories,
                 author: {
                     name: authorData.name,
-                    avatar: authorData.penci_avatar?.['96'] || authorData.avatar_urls?.['96'],
+                    avatar: authorData.penci_avatar?.['96'] != null ? authorData.penci_avatar?.['96'] : authorData.avatar_urls?.['96'],
                     link: authorData.link
                 },
             };
         }));
 
-       
+        
+        
     } catch (error) {
         console.error('Ошибка при получении данных:', error);
     }
 }
+
 
 const renderLatestPost = (post) => {
     const latestPostMain = document.getElementById("latestPostMain")
 
     latestPostMain.innerHTML = 
     (`
-      <a>
+      
         <img src="${post.image}" alt="Main Post Image" class="latest-post-main__image" />
-      </a>
-      <div class='shadow'></div>
-      <h3 class="latest-post-main__title">
-        <a>${post.title}</a>
-      </h3>
+     
+        <div class='shadow'></div>
+        <a href="${post.link}" class="latest-post-main__link">
+        </a>
+        <h3 class="latest-post-main__title">
+            <a href="${post.link}" class="latest-post-main__link-title">${post.title}</a>
+        </h3>
+      
+      
      `
     )
 }
@@ -144,12 +133,40 @@ const renderLatestPostWidget = (post) => {
     span.appendChild(dateElement)
 } 
 
+const renderLastPublished = (post) => {
+    const lastPublished = document.getElementById('lastPublished')
+
+    lastPublished.innerHTML = 
+    `
+    <div class="last-published-block">
+    <div class="last-published-overview">
+        <img src="${post.image}" alt="">
+    </div>
+ 
+    <div class="last-published">
+        <div class="last-published__author">
+            <img src="${post.author.avatar}" alt="">
+            <span>${post.author.name}</span>
+        </div>
+        <h2 class="last-published__title">
+            ${post.title}
+        </h2>
+        <p class="last-published__content">
+            Что такое бот для маркетплейсов? Бот для маркетплейсов — это программное решение, которое помогает автоматизировать задачи,…
+        </p>
+        <button class="last-published__button">Читать статью в блоге</button>
+    </div>
+    </div>
+    
+    `
+}
 
 
 async function main() {
     await fetchPosts();
 
-    // console.log(allPosts[0])
+    renderLastPublished(allPosts[0])
+
     renderLatestPost(allPosts[0])
 
     allPosts.slice(1, 5).forEach(post => {

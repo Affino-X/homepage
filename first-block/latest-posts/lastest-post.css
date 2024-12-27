@@ -1,6 +1,7 @@
 .latest-post {
     display: flex;
     flex-flow: row;
+    margin-bottom: 60px;
 } 
 
 .latest-post-main {
@@ -33,19 +34,32 @@
     display: flex;
     justify-content: center;
     align-items: flex-end;
-    top: 216px;
-    border-radius: 16px;
+    top: 210px;
     height: 200px;
     width: 670px;
-    left: 8px;
+    left: 0;
     font-weight: 600;
     font-size: 22px;
     line-height: 30px;
+    text-decoration: none;
     color: #fff;
     
 }
-.latest-post-main__title a {
+.latest-post-main__link-title {
     width: 622px;
-    margin-bottom: 20px;
+    text-decoration: none;
+    color: #fff;
+    margin-bottom: 25px;
+    
+}
+
+.latest-post-main__link {
+    position: absolute;
+    display: flex;
+    height: 100%;
+    width: 100%;
+    top: 0;
+    left: 0;
+    z-index: 99;
 }
   
